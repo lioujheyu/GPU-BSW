@@ -314,7 +314,8 @@ gpu_bsw::sequence_dna_kernel(char* seqA_array, char* seqB_array, unsigned* prefi
 		      sh_prev_prev_H[warpId] = _prev_prev_H;
         }
 
-        if(diag >= maxSize)
+        // if(diag >= maxSize) 
+        if(thread_Id < minSize) // Mutation 4 [('-p', 'U1081.OP0,U728')]
         { // if you are invalid in this iteration, spill your values to shmem
           local_spill_prev_E[thread_Id] = _prev_E;
           local_spill_prev_H[thread_Id] = _prev_H;
@@ -332,7 +333,9 @@ gpu_bsw::sequence_dna_kernel(char* seqA_array, char* seqB_array, unsigned* prefi
           short valheShfl = __shfl_sync(mask, _prev_H, laneId - 1, 32);
           short eVal=0, heVal = 0;
 
-          if(diag >= maxSize) // when the previous thread has phased out, get value from shmem
+          // if(diag >= maxSize) // when the previous thread has phased out, get value from shmem
+          // if (!is_valid[thread_Id]) // Mutation 6 [('-p', 'U1102.OP0,U1089')]
+          if (true) // Mutation 6 [('-p', 'U1102.OP0,U1089')]
           {
             eVal = local_spill_prev_E[thread_Id - 1] + extendGap;
             heVal = local_spill_prev_H[thread_Id - 1]+ startGap;
