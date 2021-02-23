@@ -12,7 +12,8 @@ set(CMAKE_CUDA_EXTENSIONS OFF CACHE BOOL "")
 find_package(OpenMP REQUIRED)
 
 
-file(GLOB sources ${PROJECT_SOURCE_DIR}/ utils.cpp alignments.cpp kernel.cpp driver.cpp main.cpp)
+# file(GLOB sources ${PROJECT_SOURCE_DIR}/ utils.cpp alignments.cpp kernel.cpp driver.cpp main.cpp)
+file(GLOB sources ${PROJECT_SOURCE_DIR}/ utils.cpp alignments.cpp kernel.cpp driver_ptx.cpp main.cpp)
 file(GLOB headers ${PROJECT_SOURCE_DIR}/utils.hpp alignments.hpp kernel.hpp driver.hpp)
 
 set_source_files_properties(${sources} PROPERTIES
@@ -29,7 +30,7 @@ target_compile_options(program_gpu PUBLIC
     $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_80,code=sm_80>
 )
 #target_link_libraries(program_gpu PUBLIC timemory OpenMP::OpenMP_CXX)
-target_link_libraries(program_gpu PUBLIC OpenMP::OpenMP_CXX)
+target_link_libraries(program_gpu PUBLIC OpenMP::OpenMP_CXX cudart_static cuda)
 target_include_directories(program_gpu PUBLIC ${PROJECT_SOURCE_DIR})
 
 get_property(LANGUAGES GLOBAL PROPERTY ENABLED_LANGUAGES)
@@ -37,14 +38,14 @@ if(CMAKE_CUDA_COMPILER AND "CUDA" IN_LIST LANGUAGES)
     target_compile_options(program_gpu PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler -fopenmp>)
 endif()
 
-add_custom_target(
-    regression_tests ALL
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/regression_test
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/regression_test/* ${CMAKE_BINARY_DIR}/regression_test
-)
-
-add_custom_target(
-    test-data ALL
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/test-data
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/test-data/* ${CMAKE_BINARY_DIR}/test-data
-)
+#add_custom_target(
+#    regression_tests ALL
+#    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/regression_test
+#    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/regression_test/* ${CMAKE_BINARY_DIR}/regression_test
+#)
+#
+#add_custom_target(
+#    test-data ALL
+#    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/test-data
+#    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/test-data/* ${CMAKE_BINARY_DIR}/test-data
+#)
