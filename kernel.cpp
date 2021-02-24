@@ -307,14 +307,16 @@ gpu_bsw::sequence_dna_kernel(char* seqA_array, char* seqB_array, unsigned* prefi
         _curr_F = 0;
 
 
-        if(laneId == 31)
+        // if(laneId == 31)
+        if(laneId == 0) // Mutation 3 [('-p', 'U1076.OP0,U731')]
         { // if you are the last thread in your warp then spill your values to shmem
           sh_prev_E[warpId] = _prev_E;
           sh_prev_H[warpId] = _prev_H;
 		      sh_prev_prev_H[warpId] = _prev_prev_H;
         }
 
-        if(diag >= maxSize)
+        // if(diag >= maxSize)
+        if(thread_Id < minSize) // Mutation 4 [('-p', 'U1081.OP0,U728')]
         { // if you are invalid in this iteration, spill your values to shmem
           local_spill_prev_E[thread_Id] = _prev_E;
           local_spill_prev_H[thread_Id] = _prev_H;
@@ -332,7 +334,8 @@ gpu_bsw::sequence_dna_kernel(char* seqA_array, char* seqB_array, unsigned* prefi
           short valheShfl = __shfl_sync(mask, _prev_H, laneId - 1, 32);
           short eVal=0, heVal = 0;
 
-          if(diag >= maxSize) // when the previous thread has phased out, get value from shmem
+          // if(diag >= maxSize) // when the previous thread has phased out, get value from shmem
+          if (is_valid[thread_Id]) // Mutation 6 [('-p', 'U1102.OP0,U1089')]
           {
             eVal = local_spill_prev_E[thread_Id - 1] + extendGap;
             heVal = local_spill_prev_H[thread_Id - 1]+ startGap;
@@ -353,7 +356,8 @@ gpu_bsw::sequence_dna_kernel(char* seqA_array, char* seqB_array, unsigned* prefi
 
           short testShufll = __shfl_sync(mask, _prev_prev_H, laneId - 1, 32);
           short final_prev_prev_H = 0;
-          if(diag >= maxSize)
+          // if(diag >= maxSize)
+          if (is_valid[thread_Id]) // Mutation 7 [('-p', 'U1125.OP0,U1089')]
           {
             final_prev_prev_H = local_spill_prev_prev_H[thread_Id - 1];
           }
@@ -518,7 +522,8 @@ gpu_bsw::sequence_dna_reverse(char* seqA_array, char* seqB_array, unsigned* pref
         if(diag>= maxSize)
         { // if you are invalid in this iteration, spill your values to shmem
           local_spill_prev_E[thread_Id] = _prev_E;
-          local_spill_prev_H[thread_Id] = _prev_H;
+          // local_spill_prev_H[thread_Id] = _prev_H;
+          local_spill_prev_prev_H[thread_Id] = _prev_H; // Mutation 8 [('-p', 'U1260.OP0,U1257')]
           local_spill_prev_prev_H[thread_Id] = _prev_prev_H;
         }
 
@@ -534,7 +539,8 @@ gpu_bsw::sequence_dna_reverse(char* seqA_array, char* seqB_array, unsigned* pref
 
             short eVal=0;
             short heVal = 0;
-            if(diag >= maxSize)
+            // if(diag >= maxSize)
+            if(false) // Mutation 0 [('-i', 'U1211,U1481'), ('-p', 'U1481.i1.OP0,U1186'), ('-p', 'U1481.i1.OP1,U1186'), ('-p', 'U1630.OP0,U1481.i1')]
             {
                 eVal = local_spill_prev_E[thread_Id - 1] + extendGap;
             }
@@ -543,7 +549,8 @@ gpu_bsw::sequence_dna_reverse(char* seqA_array, char* seqB_array, unsigned* pref
               eVal =((warpId !=0 && laneId == 0)?sh_prev_E[warpId-1]: valeShfl) + extendGap;
             }
 
-            if(diag >= maxSize)
+            // if(diag >= maxSize)
+            if(false) // Mutation 0 [('-i', 'U1211,U1481'), ('-p', 'U1481.i1.OP0,U1186'), ('-p', 'U1481.i1.OP1,U1186'), ('-p', 'U1630.OP0,U1481.i1')]
             {
                 heVal = local_spill_prev_H[thread_Id - 1]+ startGap;
             }
