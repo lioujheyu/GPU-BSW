@@ -325,6 +325,7 @@ gpu_bsw::sequence_dna_kernel(char* seqA_array, char* seqB_array, unsigned* prefi
 
         __syncthreads(); // this is needed so that all the shmem writes are completed.
 
+        bool cond_is_valid = is_valid[thread_Id]; // For Mutation 6, 7
         if(is_valid[thread_Id] && thread_Id < minSize)
         {
           unsigned mask  = __ballot_sync(__activemask(), (is_valid[thread_Id] &&( thread_Id < minSize)));
@@ -335,7 +336,8 @@ gpu_bsw::sequence_dna_kernel(char* seqA_array, char* seqB_array, unsigned* prefi
           short eVal=0, heVal = 0;
 
           // if(diag >= maxSize) // when the previous thread has phased out, get value from shmem
-          if (is_valid[thread_Id]) // Mutation 6 [('-p', 'U1102.OP0,U1089')]
+          // if (is_valid[thread_Id]) // Mutation 6 [('-p', 'U1102.OP0,U1089')]
+          if (cond_is_valid) // Mutation 6 [('-p', 'U1102.OP0,U1089')]
           {
             eVal = local_spill_prev_E[thread_Id - 1] + extendGap;
             heVal = local_spill_prev_H[thread_Id - 1]+ startGap;
@@ -357,7 +359,8 @@ gpu_bsw::sequence_dna_kernel(char* seqA_array, char* seqB_array, unsigned* prefi
           short testShufll = __shfl_sync(mask, _prev_prev_H, laneId - 1, 32);
           short final_prev_prev_H = 0;
           // if(diag >= maxSize) 
-          if (is_valid[thread_Id]) // Mutation 7 [('-p', 'U1125.OP0,U1089')]
+          // if (is_valid[thread_Id]) // Mutation 7 [('-p', 'U1125.OP0,U1089')]
+          if (cond_is_valid) // Mutation 7 [('-p', 'U1125.OP0,U1089')]
           {
             final_prev_prev_H = local_spill_prev_prev_H[thread_Id - 1];
           }
