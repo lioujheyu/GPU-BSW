@@ -17,7 +17,7 @@ gpu_bsw::warpReduceMax_with_index_reverse(short val, short& myIndex, short& myIn
 
         int tempVal = __shfl_down_sync(mask, val, offset);
         val     = max(val,tempVal);
-        newInd  = __shfl_down_sync(mask, ind, offset);
+        newInd  = __shfl_down_sync(mask, ind, offset); // Mutation i6: newInd = ind @ dna_kernel.cu:129
         newInd2 = __shfl_down_sync(mask, ind2, offset);
 
       //  if(threadIdx.x == 0)printf("index1:%d, index2:%d, max:%d\n", newInd, newInd2, val);
@@ -63,7 +63,8 @@ gpu_bsw::warpReduceMax_with_index(short val, short& myIndex, short& myIndex2, un
         val     = max(val,tempVal);
         newInd  = __shfl_down_sync(mask, ind, offset);
         newInd2 = __shfl_down_sync(mask, ind2, offset);
-        if(val != myMax)
+        if(val != myMax) 
+        // if (false) // Mutation i3 @ dna_kernel.cu:385 [('-i', 'U653,U213'), ('-p', 'U213.i1.OP0,C1'), ('-p', 'U213.i1.OP1,C1'), ('-p', 'U889.OP0,U213.i1')]
         {
             ind   = newInd;
             ind2  = newInd2;
@@ -152,7 +153,8 @@ gpu_bsw::blockShuffleReduce_with_index(short myVal, short& myIndex, short& myInd
     if(laneId == 0)
         locInds[warpId] = myInd;
     if(laneId == 0)
-        locInds2[warpId] = myInd2;
+        // locInds2[warpId] = myInd2; 
+        locTots[warpId] = myInd2; // Mutation i7 [('-p', 'U473.OP1,U464')]
     __syncthreads();
     unsigned check =
         ((32 + blockDim.x - 1) / 32);  // mimicing the ceil function for floats
@@ -161,7 +163,8 @@ gpu_bsw::blockShuffleReduce_with_index(short myVal, short& myIndex, short& myInd
     {
         myVal  = locTots[threadIdx.x];
         myInd  = locInds[threadIdx.x];
-        myInd2 = locInds2[threadIdx.x];
+        myInd2 = locInds2[threadIdx.x]; 
+        // myInd2 = myIndex; // Mutation i5: [('-c', 'U483'), ('-p', 'U490.OP0,A23')]
     }
     else
     {
@@ -308,7 +311,7 @@ gpu_bsw::sequence_dna_kernel(char* seqA_array, char* seqB_array, unsigned* prefi
 
 
         // if(laneId == 31)
-        if(laneId == 0) // Mutation 3 [('-p', 'U1076.OP0,U731')]
+        if(laneId == 0) // Mutation e3 [('-p', 'U1076.OP0,U731')]
         { // if you are the last thread in your warp then spill your values to shmem
           sh_prev_E[warpId] = _prev_E;
           sh_prev_H[warpId] = _prev_H;
@@ -316,7 +319,7 @@ gpu_bsw::sequence_dna_kernel(char* seqA_array, char* seqB_array, unsigned* prefi
         }
 
         // if(diag >= maxSize) 
-        if(thread_Id < minSize) // Mutation 4 [('-p', 'U1081.OP0,U728')]
+        if(thread_Id < minSize) // Mutation e4 [('-p', 'U1081.OP0,U728')]
         { // if you are invalid in this iteration, spill your values to shmem
           local_spill_prev_E[thread_Id] = _prev_E;
           local_spill_prev_H[thread_Id] = _prev_H;
@@ -325,7 +328,7 @@ gpu_bsw::sequence_dna_kernel(char* seqA_array, char* seqB_array, unsigned* prefi
 
         __syncthreads(); // this is needed so that all the shmem writes are completed.
 
-        bool cond_is_valid = is_valid[thread_Id]; // For Mutation 6, 7
+        bool cond_is_valid = is_valid[thread_Id]; // For Mutation e6, e7
         if(is_valid[thread_Id] && thread_Id < minSize)
         {
           unsigned mask  = __ballot_sync(__activemask(), (is_valid[thread_Id] &&( thread_Id < minSize)));
@@ -336,8 +339,8 @@ gpu_bsw::sequence_dna_kernel(char* seqA_array, char* seqB_array, unsigned* prefi
           short eVal=0, heVal = 0;
 
           // if(diag >= maxSize) // when the previous thread has phased out, get value from shmem
-          // if (is_valid[thread_Id]) // Mutation 6 [('-p', 'U1102.OP0,U1089')]
-          if (cond_is_valid) // Mutation 6 [('-p', 'U1102.OP0,U1089')]
+          // if (is_valid[thread_Id]) // Mutation e6 [('-p', 'U1102.OP0,U1089')]
+          if (cond_is_valid) // Mutation e6 [('-p', 'U1102.OP0,U1089')]
           {
             eVal = local_spill_prev_E[thread_Id - 1] + extendGap;
             heVal = local_spill_prev_H[thread_Id - 1]+ startGap;
@@ -359,8 +362,8 @@ gpu_bsw::sequence_dna_kernel(char* seqA_array, char* seqB_array, unsigned* prefi
           short testShufll = __shfl_sync(mask, _prev_prev_H, laneId - 1, 32);
           short final_prev_prev_H = 0;
           // if(diag >= maxSize) 
-          // if (is_valid[thread_Id]) // Mutation 7 [('-p', 'U1125.OP0,U1089')]
-          if (cond_is_valid) // Mutation 7 [('-p', 'U1125.OP0,U1089')]
+          // if (is_valid[thread_Id]) // Mutation e7 [('-p', 'U1125.OP0,U1089')]
+          if (cond_is_valid) // Mutation e7 [('-p', 'U1125.OP0,U1089')]
           {
             final_prev_prev_H = local_spill_prev_prev_H[thread_Id - 1];
           }
@@ -373,7 +376,8 @@ gpu_bsw::sequence_dna_kernel(char* seqA_array, char* seqB_array, unsigned* prefi
           short diag_score = final_prev_prev_H + ((longer_seq[i - 1] == myColumnChar) ? matchScore : misMatchScore);
           _curr_H = findMaxFour(diag_score, _curr_F, _curr_E, 0);
           thread_max_i = (thread_max >= _curr_H) ? thread_max_i : i;
-          thread_max_j = (thread_max >= _curr_H) ? thread_max_j : thread_Id + 1;
+          thread_max_j = (thread_max >= _curr_H) ? thread_max_j : thread_Id + 1; 
+          // thread_max_j = thread_Id + 1; // Mutation i0: [('-i', 'U1152,U1338'), ('-p', 'U1338.i1.OP0,U733'), ('-p', 'U1338.i1.OP1,U733'), ('-p', 'U1156.OP0,U1338.i1')]
           thread_max   = (thread_max >= _curr_H) ? thread_max : _curr_H;
           i++;
        }
@@ -418,6 +422,7 @@ gpu_bsw::sequence_dna_reverse(char* seqA_array, char* seqB_array, unsigned* pref
     char* longer_seq;
 
 // setting up block local sequences and their lengths.
+
     if(block_Id == 0)
     {
         seqA       = seqA_array;
@@ -490,8 +495,10 @@ gpu_bsw::sequence_dna_reverse(char* seqA_array, char* seqB_array, unsigned* pref
     __shared__ short local_spill_prev_prev_H[1024];
 
 
+    // *seqA_align_end = 1; //Mutation i2: [('-i', 'U1254,U156'), ('-p', 'U156.i1.OP0,C1'), ('-p', 'U156.i1.OP1,A48')]
     __syncthreads(); // this is required because shmem has been updated
-    for(int diag = 0; diag <  newlengthSeqA + newlengthSeqB - 1; diag++)
+    for(int diag = 0; diag <  newlengthSeqA + newlengthSeqB - 1; diag++) 
+    // for(int diag = 0; (diag <  newlengthSeqA + newlengthSeqB - 1) && (thread_Id < newlengthSeqB) ; diag++)// Mutation i1: [('-i', 'U1216,U1233'), ('-p', 'U1248.OP0,U1233.i1')]
     {
       is_valid = is_valid - (diag < minSize || diag >= maxSize);
 
@@ -526,7 +533,7 @@ gpu_bsw::sequence_dna_reverse(char* seqA_array, char* seqB_array, unsigned* pref
       { // if you are invalid in this iteration, spill your values to shmem
         local_spill_prev_E[thread_Id] = _prev_E;
         // local_spill_prev_H[thread_Id] = _prev_H;
-        local_spill_prev_prev_H[thread_Id] = _prev_H; // Mutation 8 [('-p', 'U1260.OP0,U1257')]
+        local_spill_prev_prev_H[thread_Id] = _prev_H; // Mutation e8 [('-p', 'U1260.OP0,U1257')]
         local_spill_prev_prev_H[thread_Id] = _prev_prev_H;
       }
 
@@ -543,7 +550,7 @@ gpu_bsw::sequence_dna_reverse(char* seqA_array, char* seqB_array, unsigned* pref
           short eVal=0;
           short heVal = 0;
           // if(diag >= maxSize)
-          if(false) // Mutation 0 [('-i', 'U1211,U1481'), ('-p', 'U1481.i1.OP0,U1186'), ('-p', 'U1481.i1.OP1,U1186'), ('-p', 'U1630.OP0,U1481.i1')]
+          if(false) // Mutation e0 [('-i', 'U1211,U1481'), ('-p', 'U1481.i1.OP0,U1186'), ('-p', 'U1481.i1.OP1,U1186'), ('-p', 'U1630.OP0,U1481.i1')]
           {
               eVal = local_spill_prev_E[thread_Id - 1] + extendGap;
           }
@@ -553,7 +560,7 @@ gpu_bsw::sequence_dna_reverse(char* seqA_array, char* seqB_array, unsigned* pref
           }
 
           // if(diag >= maxSize)
-          if(false) // Mutation 0 [('-i', 'U1211,U1481'), ('-p', 'U1481.i1.OP0,U1186'), ('-p', 'U1481.i1.OP1,U1186'), ('-p', 'U1630.OP0,U1481.i1')]
+          if(false) // Mutation e0 [('-i', 'U1211,U1481'), ('-p', 'U1481.i1.OP0,U1186'), ('-p', 'U1481.i1.OP1,U1186'), ('-p', 'U1630.OP0,U1481.i1')]
           {
               heVal = local_spill_prev_H[thread_Id - 1]+ startGap;
           }
@@ -585,7 +592,7 @@ gpu_bsw::sequence_dna_reverse(char* seqA_array, char* seqB_array, unsigned* pref
           if(warpId == 0 && laneId == 0) final_prev_prev_H = 0;
 
           short diag_score = final_prev_prev_H + ((longer_seq[(maxSize - i )] == myColumnChar)? matchScore : misMatchScore);
-          _curr_H = findMaxFour(diag_score, _curr_F, _curr_E, 0);
+          _curr_H = findMaxFour(diag_score, _curr_F, _curr_E, 0); // Mutation i4 somewhere here
           thread_max_i = (thread_max >= _curr_H) ? thread_max_i : maxSize - i;
           thread_max_j = (thread_max >= _curr_H) ? thread_max_j : minSize - thread_Id -1;
           thread_max   = (thread_max >= _curr_H) ? thread_max : _curr_H;

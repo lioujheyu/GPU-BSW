@@ -4,9 +4,13 @@ CC = clang++
 CFLAGS = --cuda-gpu-arch=sm_60 -I./
 
 dna-llvmir-opt: $(DNA_SRC)
-	$(CC) $(CFLAGS) -O3 --cuda-device-only -S -emit-llvm $< -o cuda-device-only-kernel.ll
+	$(CC) $(CFLAGS) -O3 -g1 --cuda-device-only -S -emit-llvm $< -o cuda-device-only-kernel.ll
 	cat cuda-device-only-kernel.ll | llvm-mutate -n -o cuda-device-only-kernel.ll
 	llc -march=nvptx64 -mcpu=sm_60 -mattr=+ptx70 cuda-device-only-kernel.ll -o gevo.ptx
+
+dna-test: $(DNA_SRC)
+	$(CC) $(CFLAGS) -O3 -g1 --cuda-device-only -S -emit-llvm $< -o test.ll
+	cat test.ll | llvm-mutate -n -o test.ll
 
 dna-llvmir: $(DNA_SRC)
 	$(CC) $(CFLAGS) -O0 --cuda-device-only -S -emit-llvm $< -o cuda-device-only-kernel.ll
