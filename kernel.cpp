@@ -310,7 +310,7 @@ align_sequences_gpu(char* seqA_array, char* seqB_array, unsigned* prefix_lengthA
             // printf("diag:%d\tlocSum:%d\n",diag,diagOffset[locDiagId]);
         }
     }
-    __syncthreads();
+    // __syncthreads(); // Mut e2
     for(int diag = 0; diag < lengthSeqA + lengthSeqB - 1; diag++)
     {  // iterate for the number of anti-diagonals
 
@@ -321,23 +321,23 @@ align_sequences_gpu(char* seqA_array, char* seqB_array, unsigned* prefix_lengthA
         curr_H      = prev_prev_H;
         prev_prev_H = tmp_ptr;
 
-        memset(curr_H, 0, (minSize + 1) * sizeof(short));
-        __syncthreads();
+        // memset(curr_H, 0, (minSize + 1) * sizeof(short)); // Mut e3
+        // __syncthreads(); // Mut e4
         tmp_ptr     = prev_E;
         prev_E      = curr_E;
         curr_E      = prev_prev_E;
         prev_prev_E = tmp_ptr;
 
-        memset(curr_E, 0, (minSize + 1) * sizeof(short));
-        __syncthreads();
+        // memset(curr_E, 0, (minSize + 1) * sizeof(short)); // Mut e5
+        // __syncthreads(); // Mut i1
         tmp_ptr     = prev_F;
         prev_F      = curr_F;
         curr_F      = prev_prev_F;
         prev_prev_F = tmp_ptr;
 
-        memset(curr_F, 0, (minSize + 1) * sizeof(short));
+        // memset(curr_F, 0, (minSize + 1) * sizeof(short)); // Mut e6
 
-        __syncthreads();
+        // __syncthreads(); // Mut e
 
         if(is_valid[myTId] && myTId < minSize)
         {
@@ -346,8 +346,9 @@ align_sequences_gpu(char* seqA_array, char* seqB_array, unsigned* prefix_lengthA
             short eVal  = prev_E[j - 1] + EXTEND_GAP;
             short heVal = prev_H[j - 1] + START_GAP;
 
-            curr_F[j] = (fVal > hfVal) ? fVal : hfVal;
-            curr_E[j] = (eVal > heVal) ? eVal : heVal;
+            // curr_F[j] = (fVal > hfVal) ? fVal : hfVal; // Mut e8, e13
+            // curr_E[j] = (eVal > heVal) ? eVal : heVal; // Mut i2, e9
+            *I_i = eVal; // Mut i2, e9
 
             //(myLocString[i-1] == myColumnChar)?MATCH:MISMATCH
 
@@ -356,8 +357,10 @@ align_sequences_gpu(char* seqA_array, char* seqB_array, unsigned* prefix_lengthA
                 ((myLocString[i - 1] == myColumnChar)
                      ? MATCH
                      : MISMATCH);  // similarityScore(myLocString[i-1],myColumnChar);//seqB[j-1]
-            traceback[1] = curr_F[j];
-            traceback[2] = curr_E[j];
+            // traceback[1] = curr_F[j]; // Mut e10
+            traceback[1] = -1;
+            // traceback[2] = curr_E[j]; // Mut e9
+            traceback[2] = *I_i;
             traceback[3] = 0;
 
             curr_H[j] = findMax(traceback, 4, &ind);
@@ -379,7 +382,8 @@ align_sequences_gpu(char* seqA_array, char* seqB_array, unsigned* prefix_lengthA
             I_j[diagOffset[diagId] + locOffset] = j + jVal[ind];
 
             thread_max_i = (thread_max >= curr_H[j]) ? thread_max_i : i;
-            thread_max_j = (thread_max >= curr_H[j]) ? thread_max_j : myTId + 1;
+            // thread_max_j = (thread_max >= curr_H[j]) ? thread_max_j : myTId + 1; //Mut i3
+            thread_max_j = myTId + 1; // Mutation i3
             thread_max   = (thread_max >= curr_H[j]) ? thread_max : curr_H[j];
 
             i++;
