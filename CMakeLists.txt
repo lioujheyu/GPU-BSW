@@ -12,7 +12,8 @@ set(CMAKE_CUDA_EXTENSIONS OFF CACHE BOOL "")
 find_package(OpenMP REQUIRED)
 
 
-file(GLOB sources ${PROJECT_SOURCE_DIR}/kernel.cpp driver.cpp main.cpp)
+# file(GLOB sources ${PROJECT_SOURCE_DIR}/kernel.cpp driver.cpp main.cpp)
+file(GLOB sources ${PROJECT_SOURCE_DIR}/kernel.cpp driver_ptx.cpp main.cpp)
 file(GLOB headers ${PROJECT_SOURCE_DIR}/kernel.hpp driver.hpp)
 
 set_source_files_properties(${sources} PROPERTIES
@@ -26,10 +27,10 @@ target_compile_options(program_gpu PUBLIC
     $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_60,code=sm_60>
     $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_61,code=sm_61>
     $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_70,code=sm_70>
-    ##    $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_80,code=sm_80>
+    $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_80,code=sm_80>
 )
 #target_link_libraries(program_gpu PUBLIC timemory OpenMP::OpenMP_CXX)
-target_link_libraries(program_gpu PUBLIC OpenMP::OpenMP_CXX)
+target_link_libraries(program_gpu PUBLIC OpenMP::OpenMP_CXX cudart_static cuda)
 target_include_directories(program_gpu PUBLIC ${PROJECT_SOURCE_DIR})
 
 get_property(LANGUAGES GLOBAL PROPERTY ENABLED_LANGUAGES)
