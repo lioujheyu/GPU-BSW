@@ -32,32 +32,77 @@ main(int argc, char* argv[])
     unsigned largestA = 0, largestB = 0;
 
     int totSizeA = 0, totSizeB = 0;
+    // if(ref_file.is_open())
+    // {
+    //     while(getline(ref_file, myInLine))
+    //     {
+    //         string seq = myInLine.substr(myInLine.find(":") + 1, myInLine.size() - 1);
+    //         G_sequencesA.push_back(seq);
+    //         totSizeA += seq.size();
+    //         if(seq.size() > largestA)
+    //         {
+    //             largestA = seq.size();
+    //         }
+    //     }
+    // }
+
+    // if(quer_file.is_open())
+    // {
+    //     while(getline(quer_file, myInLine))
+    //     {
+    //         string seq = myInLine.substr(myInLine.find(":") + 1, myInLine.size() - 1);
+    //         G_sequencesB.push_back(seq);
+    //         totSizeB += seq.size();
+    //         if(seq.size() > largestB)
+    //         {
+    //             largestB = seq.size();
+    //         }
+    //     }
+    // }
     if(ref_file.is_open())
     {
         while(getline(ref_file, myInLine))
         {
-            string seq = myInLine.substr(myInLine.find(":") + 1, myInLine.size() - 1);
-            G_sequencesA.push_back(seq);
-            totSizeA += seq.size();
-            if(seq.size() > largestA)
-            {
-                largestA = seq.size();
+          //  string seq = myInLine.substr(myInLine.find(":") + 1, myInLine.size() - 1);
+            if(myInLine[0] == '>'){
+              continue;
+            }else{
+              string seq = myInLine;
+              G_sequencesA.push_back(seq);
+              //std::cout<<"ref:"<<G_sequencesA.size()<<std::endl;
+              totSizeA += seq.size();
+              if(seq.size() > largestA)
+              {
+                  largestA = seq.size();
+              }
+    
             }
+    
         }
+        ref_file.close();
     }
-
+    
     if(quer_file.is_open())
     {
         while(getline(quer_file, myInLine))
         {
-            string seq = myInLine.substr(myInLine.find(":") + 1, myInLine.size() - 1);
-            G_sequencesB.push_back(seq);
-            totSizeB += seq.size();
-            if(seq.size() > largestB)
-            {
-                largestB = seq.size();
+            //string seq = myInLine.substr(myInLine.find(":") + 1, myInLine.size() - 1);
+            if(myInLine[0] == '>'){
+              continue;
+            }else{
+              string seq = myInLine;
+              G_sequencesB.push_back(seq);
+            //  std::cout<<"que:"<<G_sequencesB.size()<<std::endl;
+              totSizeB += seq.size();
+              if(seq.size() > largestB)
+              {
+                  largestB = seq.size();
+              }
+    
             }
+    
         }
+        quer_file.close();
     }
 
     short* g_alAbeg;
@@ -73,6 +118,19 @@ main(int argc, char* argv[])
     // cout <<"start ref:"<<g_alAbeg[1]<<" end ref:"<<g_alAend[1]<<endl;
     // cout <<"start que:"<<g_alBbeg[1]<<" end que:"<<g_alBend[1]<<endl;
     verificationTest(argv[3], g_alAbeg, g_alBbeg, g_alAend, g_alBend);
+
+    ofstream results_file("result.out");
+
+
+  for(int k = 0; k < G_sequencesA.size(); k++){
+        results_file<<g_alAbeg[k]<<"\t"
+                <<g_alAend[k]<<"\t"
+                <<g_alBbeg[k]<<"\t"
+                <<g_alBend[k]<<"\t"
+                <<endl;
+  }
+  results_file.flush();
+  results_file.close();
 
     return 0;
 }
