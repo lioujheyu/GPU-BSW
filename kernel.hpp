@@ -5,10 +5,16 @@
 #include <iostream>
 #include <sys/time.h>
 
-#define EXTEND_GAP -2
-#define START_GAP -2
+// #define EXTEND_GAP -2
+// #define START_GAP -2
+// //#define NBLOCKS 15000
+// #define MATCH 15
+// #define MISMATCH -3
+
+#define EXTEND_GAP -1
+#define START_GAP -3
 //#define NBLOCKS 15000
-#define MATCH 15
+#define MATCH 1
 #define MISMATCH -3
 
 __inline__ __device__ short
