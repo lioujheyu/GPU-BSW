@@ -27,7 +27,7 @@ gpuAssert(cudaError_t code, const char* file, int line, bool abort = true)
 void
 callAlignKernel(std::vector<std::string> reads, std::vector<std::string> contigs,
                 unsigned maxReadSize, unsigned maxContigSize, unsigned totalAlignments,
-                short** gg_alAbeg, short** gg_alBbeg, short** gg_alAend,
+                short** gg_alAbeg, short** gg_alBbeg, short** gg_alAend, short** gg_top_scores,
                 short** gg_alBend, char* rstFile);
 
 void

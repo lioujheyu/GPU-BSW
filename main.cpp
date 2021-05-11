@@ -75,13 +75,13 @@ main(int argc, char* argv[])
               {
                   largestA = seq.size();
               }
-    
+
             }
-    
+
         }
         ref_file.close();
     }
-    
+
     if(quer_file.is_open())
     {
         while(getline(quer_file, myInLine))
@@ -98,9 +98,9 @@ main(int argc, char* argv[])
               {
                   largestB = seq.size();
               }
-    
+
             }
-    
+
         }
         quer_file.close();
     }
@@ -109,9 +109,10 @@ main(int argc, char* argv[])
     short* g_alBbeg;
     short* g_alAend;
     short* g_alBend;
+    short* g_top_scores;
 
     callAlignKernel(G_sequencesB, G_sequencesA, largestB, largestA, G_sequencesA.size(),
-                    &g_alAbeg, &g_alBbeg, &g_alAend, &g_alBend, argv[3]);
+                    &g_alAbeg, &g_alBbeg, &g_alAend, &g_alBend, &g_top_scores, argv[3]);
 
     // cout <<"start ref:"<<g_alAbeg[0]<<" end ref:"<<g_alAend[0]<<endl;
     // cout <<"start que:"<<g_alBbeg[0]<<" end que:"<<g_alBend[0]<<endl;
@@ -123,11 +124,12 @@ main(int argc, char* argv[])
 
 
   for(int k = 0; k < G_sequencesA.size(); k++){
-        results_file<<g_alAbeg[k]<<"\t"
-                <<g_alAend[k]<<"\t"
-                <<g_alBbeg[k]<<"\t"
-                <<g_alBend[k]<<"\t"
-                <<endl;
+        results_file<<g_top_scores[k]<<"\t"
+                    <<g_alAbeg[k]<<"\t"
+                    <<g_alAend[k]<<"\t"
+                    <<g_alBbeg[k]<<"\t"
+                    <<g_alBend[k]<<"\t"
+                    <<endl;
   }
   results_file.flush();
   results_file.close();

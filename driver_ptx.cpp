@@ -16,7 +16,7 @@ void
 callAlignKernel(std::vector<std::string> reads, std::vector<std::string> contigs,
                 unsigned maxReadSize, unsigned maxContigSize, unsigned totalAlignments,
                 short** gg_alAbeg, short** gg_alBbeg, short** gg_alAend,
-                short** gg_alBend, char* rstFile)
+                short** gg_alBend, short** gg_top_scores, char* rstFile)
 {
     int deviceCount=1;
     cudaGetDeviceCount(&deviceCount);
@@ -49,6 +49,7 @@ callAlignKernel(std::vector<std::string> reads, std::vector<std::string> contigs
     short* g_alBbeg = new short[NBLOCKS];
     short* g_alAend = new short[NBLOCKS];
     short* g_alBend = new short[NBLOCKS];  // memory on CPU for copying the results
+    short* g_top_scores = new short[NBLOCKS];  // memory on CPU for copying the results
 
     auto start = NOW;
 #pragma omp parallel
@@ -66,7 +67,7 @@ callAlignKernel(std::vector<std::string> reads, std::vector<std::string> contigs
         short *  I_i, *I_j;  // device pointers for traceback matrices
                              // double *matrix, *Ematrix, *Fmatrix;
 
-        short *alAbeg_d, *alBbeg_d, *alAend_d, *alBend_d;
+        short *alAbeg_d, *alBbeg_d, *alAend_d, *alBend_d, *top_scores_d;
 
         short* alAbeg = g_alAbeg + my_cpu_id * alignmentsPerDevice;
         short* alBbeg = g_alBbeg + my_cpu_id * alignmentsPerDevice;
@@ -74,6 +75,7 @@ callAlignKernel(std::vector<std::string> reads, std::vector<std::string> contigs
         short* alBend =
             g_alBend +
             my_cpu_id * alignmentsPerDevice;  // memory on CPU for copying the results
+        short* top_scores = g_top_scores + my_cpu_id * alignmentsPerDevice;
 
         thrust::host_vector<int>        offsetA(stringsPerIt + leftOvers);
         thrust::host_vector<int>        offsetB(stringsPerIt + leftOvers);
@@ -93,6 +95,7 @@ callAlignKernel(std::vector<std::string> reads, std::vector<std::string> contigs
         cudaErrchk(cudaMalloc(&alBbeg_d, (stringsPerIt + leftOvers) * sizeof(short)));
         cudaErrchk(cudaMalloc(&alAend_d, (stringsPerIt + leftOvers) * sizeof(short)));
         cudaErrchk(cudaMalloc(&alBend_d, (stringsPerIt + leftOvers) * sizeof(short)));
+        cudaErrchk(cudaMalloc(&top_scores_d, (stringsPerIt + leftOvers) * sizeof(short)));
         // //std::cout << "Iterations per GPU:"<<its<<std::endl;
 
         unsigned int err;
@@ -100,7 +103,7 @@ callAlignKernel(std::vector<std::string> reads, std::vector<std::string> contigs
         CUfunction kernel;
 
         err = cuModuleLoad(&module, "gevo.ptx");
-        err = cuModuleGetFunction(&kernel, module, "_Z19align_sequences_gpuPcS_PjS0_jPsS1_S1_S1_S1_S1_");
+        err = cuModuleGetFunction(&kernel, module, "_Z19align_sequences_gpuPcS_PjS0_jPsS1_S1_S1_S1_S1_S1_");
 
         cudaProfilerStart();
 
@@ -218,7 +221,7 @@ callAlignKernel(std::vector<std::string> reads, std::vector<std::string> contigs
 
             void* args[] = {
               &strA_d, &strB_d, &offsetA_d, &offsetB_d, &maxMatrixSize, &I_i, &I_j,
-              &alAbeg_d, &alAend_d, &alBbeg_d, &alBend_d};
+              &alAbeg_d, &alAend_d, &alBbeg_d, &alBend_d, &top_scores_d};
             err = cuLaunchKernel(kernel, blocksLaunched, 1, 1,
                                  minSize, 1, 1,
                                  ShmemBytes, 0, args, 0);
@@ -238,12 +241,15 @@ callAlignKernel(std::vector<std::string> reads, std::vector<std::string> contigs
                 cudaMemcpy(alBend, alBend_d, blocksLaunched * sizeof(short),
                            cudaMemcpyDeviceToHost));  // this does not cause the error
                                                       // the other three lines do.
+            cudaErrchk(cudaMemcpy(top_scores, top_scores_d, blocksLaunched * sizeof(short),
+                                  cudaMemcpyDeviceToHost));                                      
 
             //}
             alAbeg += stringsPerIt;  // perGPUIts;//*stringsPerIt;
             alBbeg += stringsPerIt;  //;//*stringsPerIt;
             alAend += stringsPerIt;  //;//*stringsPerIt;
             alBend += stringsPerIt;  //;//*stringsPerIt;
+            top_scores += stringsPerIt;
             cudaErrchk(cudaFree(strA_d));
             cudaErrchk(cudaFree(strB_d));
             //}
@@ -258,6 +264,7 @@ callAlignKernel(std::vector<std::string> reads, std::vector<std::string> contigs
         cudaErrchk(cudaFree(alBbeg_d));
         cudaErrchk(cudaFree(alAend_d));
         cudaErrchk(cudaFree(alBend_d));
+        cudaErrchk(cudaFree(top_scores_d));
 
 #pragma omp barrier
     }  // paralle pragma ends
@@ -270,6 +277,7 @@ callAlignKernel(std::vector<std::string> reads, std::vector<std::string> contigs
     *gg_alBbeg = g_alBbeg;
     *gg_alAend = g_alAend;
     *gg_alBend = g_alBend;
+    *gg_top_scores = g_top_scores;
 }
 
 void
