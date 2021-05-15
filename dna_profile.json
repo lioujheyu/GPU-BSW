@@ -26,7 +26,7 @@
 	],
 	"verify": {
 	  "mode": "file",
-	  "output": ["score.out"],
-	  "fuzzy": true
+	  "output": ["top_scores.out","score.out"],
+	  "fuzzy": [true, false]
 	}
 }
